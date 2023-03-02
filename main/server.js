@@ -1,12 +1,6 @@
-const express = require('express');
 const mysql = require('mysql2');
 const inquirer = require('inquirer');
-
-const PORT = process.env.PORT || 3001;
-const app = express();
-
-app.use(express.urlencoded({ extended: false }));
-app.use(express.json());
+const cTable = require('console.table');
 
 const db = mysql.createConnection(
     {
@@ -94,11 +88,68 @@ const updateEmployeeQuestions = [
     }
 ]
 
-// default response for any other request (Not Found)
-app.use((req, res) => {
-    res.status(404).end();
-  });
+// function viewEmployees() {
+//     const sql = `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary,  FROM department LEFT JOIN role ON department.id = role.department_id`;
+    
+//     db.query(sql, (err, rows) => {
+//         if (err) {
+//             res.status(500).json({ error: err.message });
+//             return;
+//         }
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
+//         console.table(rows);
+//         init()
+//     })
+// }
+
+function viewRoles() {
+    const sql = `SELECT role.id, role.title, department.name AS department, role.salary FROM department LEFT JOIN role ON department.id = role.department_id`;
+    
+    db.query(sql, (err, rows) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+
+        console.table(rows);
+        init();
+    })
+}
+
+function viewDepartments() {
+    const sql = `SELECT id, name FROM department`;
+    
+    db.query(sql, (err, rows) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+
+        console.table(rows);
+        init();
+    })
+}
+
+function init() {
+    inquirer
+        .prompt(starterQuestion)
+        .then(function(data) {
+            if (data.request === "View All Employees") {
+                viewEmployees();
+            } else if (data.request === "View All Roles") {
+                viewRoles();
+            } else if (data.request === "View All Departments") {
+                viewDepartments();
+            } else if (data.request === "Add Employee") {
+                
+            } else if (data.request === "Add Role") {
+                
+            } else if (data.request === "Add Department") {
+                
+            } else if (data.request === "Update Employee Role") {
+                
+            }
+        })
+}
+
+init();
