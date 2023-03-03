@@ -71,39 +71,80 @@ function getDepartments() {
     })
 }
 
+// needs to be made asynchronous to function properly
 function addEmployee() {
     const addEmployeeQuestions = [
         {
             type: 'input',
             message: "What is the employee's first name?",
-            name: 'first_name'
+            name: 'firstName'
         },
         {
             type: 'input',
             message: "What is the employee's last name?",
-            name: 'last_name'
+            name: 'lastName'
         },
         {
             type: 'list',
             message: "What is the employee's role?",
-            choices: [''], // dynamic list of all roles
+            choices: [],
             name: 'title'
         },
         {
             type: 'list',
             message: "Who is the employee's manager?",
-            choices: [''], // dynamic list of all employees; includes a 'None' option
+            choices: [],
             name: 'manager'
         }
     ]
 
+    db.query("SELECT id, title FROM role;", function (err, result) {
+        if (err) {
+            throw err;
+        }
+        addEmployeeQuestions[2].choices = result;
+    });
+    
+    db.query('SELECT id, concat(employee.first_name, " ", employee.last_name) AS manager FROM employee;', function (err, result) {
+        if (err) {
+            throw err;
+        }
+        addEmployeeQuestions[3].choices= result;
+    });
 
+    inquirer
+    .prompt(addEmployeeQuestions)
+    .then(function(data) {
+        var roleId;
+
+        for (i = 0; i < addEmployeeQuestions[2].choices.length; i++) {
+            if (addEmployeeQuestions[2].choices[i].title === data.title) {
+                roleId = addEmployeeQuestions[2].choices[i].id;
+            }
+        }
+
+        var managerId;
+
+        for (i = 0; i < addEmployeeQuestions[3].choices.length; i++) {
+            if (addEmployeeQuestions[3].choices[i].manager === data.manager) {
+                managerId = addEmployeeQuestions[3].choices[i].id;
+            }
+        }
+
+        const sql = `INSERT INTO employee (first_name, last_name, role_id, manager_id)
+        VALUES ("${data.firstName}", ${data.lastName}, ${roleId}, ${managerId});`
+
+        db.query(sql, (err, result) => {
+            if (err) {
+                console.error(err);
+                return;
+            }
+            init();
+        });
+    })
 }
 
 function addRole() {
-    const departments = db.query(`SELECT id, name FROM department;`)
-    console.log(departments);
-
     const addRoleQuestions = [
         {
             type: 'input',
@@ -118,24 +159,40 @@ function addRole() {
         {
             type: 'list',
             message: 'Which department does the role belong to?',
-            choices: departments, // dynamic list of all departments
+            choices: [], // dynamic list of all departments
             name: 'department'
         }
     ]
 
-    // inquirer
-    // .prompt(addRoleQuestions)
-    // .then(function(data) {
-    //     const sql = `INSERT INTO role (title, salary, department_id) VALUES ("${data.title}", ${data.salary})`
+    db.query("SELECT * FROM department", function (err, result) {
+        if (err) {
+            throw err;
+        }
+        addRoleQuestions[2].choices = result;
+    });
 
-    //     db.query(sql, (err, result) => {
-    //         if (err) {
-    //             console.error(err);
-    //             return;
-    //         }
-    //         init();
-    //     });
-    // })
+    inquirer
+    .prompt(addRoleQuestions)
+    .then(function(data) {
+        var deptId;
+
+        for (i = 0; i < addRoleQuestions[2].choices.length; i++) {
+            if (addRoleQuestions[2].choices[i].name === data.department) {
+                deptId = addRoleQuestions[2].choices[i].id;
+            }
+        }
+
+        const sql = `INSERT INTO role (title, salary, department_id)
+        VALUES ("${data.title}", ${data.salary}, ${deptId});`
+
+        db.query(sql, (err, result) => {
+            if (err) {
+                console.error(err);
+                return;
+            }
+            init();
+        });
+    })
 }
 
 function addDepartment() {
@@ -162,23 +219,68 @@ function addDepartment() {
         })
 }
 
+// same issue as addEmployee: skips ahead to inquirer before the db queries can update the questions array
 function updateEmployeeRole() {
     const updateEmployeeQuestions = [
         {
             type: 'list',
             message: "Which employee's role do you want to update?",
-            choices: [''], //dynamic list of all employees
+            choices: [], //dynamic list of all employees
             name: 'employee'
         },
         {
             type: 'list',
             message: 'Which role do you want to assign the selected employee?',
-            choices: [''], //dynamic list of all roles
+            choices: [], //dynamic list of all roles
             name: 'title'
         }
     ]
 
+    db.query('SELECT id, concat(employee.first_name, " ", employee.last_name) AS worker FROM employee;', function (err, result) {
+        if (err) {
+            throw err;
+        }
+        updateEmployeeQuestions[0].choices= result;
+    });
 
+    db.query("SELECT id, title FROM role;", function (err, result) {
+        if (err) {
+            throw err;
+        }
+        updateEmployeeQuestions[1].choices = result;
+    });
+    
+    inquirer
+    .prompt(updateEmployeeQuestions)
+    .then(function(data) {
+        var employeeId;
+
+        for (i = 0; i < updateEmployeeQuestions[0].choices.length; i++) {
+            if (updateEmployeeQuestions[0].choices[i].worker === data.employee) {
+                employeeId = updateEmployeeQuestions[0].choices[i].id;
+            }
+        }
+
+        var roleId;
+
+        for (i = 0; i < updateEmployeeQuestions[1].choices.length; i++) {
+            if (updateEmployeeQuestions[1].choices[i].title === data.title) {
+                roleId = updateEmployeeQuestions[1].choices[i].id;
+            }
+        }
+
+        const sql = `UPDATE employee
+        SET role_id = ${roleId}
+        WHERE id = ${employeeId};`
+
+        db.query(sql, (err, result) => {
+            if (err) {
+                console.error(err);
+                return;
+            }
+            init();
+        });
+    })
 }
 
 function init() {
