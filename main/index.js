@@ -1,7 +1,9 @@
+// import dependencies
 const mysql = require('mysql2');
 const inquirer = require('inquirer');
 const cTable = require('console.table');
 
+// create connection
 const db = mysql.createConnection(
     {
       host: 'localhost',
@@ -10,8 +12,9 @@ const db = mysql.createConnection(
       database: 'employee_db'
     },
     console.log(`Connected to the employee_db database.`)
-  );
+);
 
+// array of inquirer questions for home screen
 const starterQuestion = [
     {
         type: 'list',
@@ -21,7 +24,9 @@ const starterQuestion = [
     },
 ]
 
+// view employees
 function getEmployees() {
+    // query to create a doubly-joined table with all the relevant information
     const sql = `SELECT tbl1.id, tbl1.first_name, tbl1.last_name, tbl1.title, tbl1.department, tbl1.salary, concat(employee.first_name, " ", employee.last_name) as manager FROM
     (SELECT employee.id as id, employee.first_name as first_name, employee.last_name as last_name, role.title as title, department.name AS department, role.salary as salary, employee.manager_id as manager_id
     FROM employee
@@ -29,49 +34,59 @@ function getEmployees() {
     JOIN department ON role.department_id = department.id) as tbl1
     LEFT JOIN employee ON employee.id = tbl1.manager_id;`;
     
+    // actual query call
     db.query(sql, (err, rows) => {
+        // throw error if there is one
         if (err) {
-            console.error(err);
-            return;
+            throw(err);
         }
 
+        // display table and return to start menu
         console.table(rows);
         init();
     })
 }
 
+// view roles
 function getRoles() {
+    // query to create a joined table with relevant information
     const sql = `SELECT role.id, role.title, department.name AS department, role.salary
     FROM department
     JOIN role ON department.id = role.department_id;`;
     
+    // actual query call
     db.query(sql, (err, rows) => {
+        // throw error if there is one
         if (err) {
-            console.error(err);
-            return;
+            throw(err);
         }
 
+        // display table and return to start menu
         console.table(rows);
         init();
     })
 }
 
+// view departments
 function getDepartments() {
+    // query to create a table with data from department (could do SELECT *)
     const sql = `SELECT id, name
     FROM department;`;
     
+    // actual query call
     db.query(sql, (err, rows) => {
+        // throw error if there is one
         if (err) {
-            console.error(err);
-            return;
+            throw(err);
         }
 
+        // display table and return to start menu
         console.table(rows);
         init();
     })
 }
 
-// needs to be made asynchronous to function properly
+// add new employee; currently bugged, needs to be made asynchronous to function properly
 function addEmployee() {
     const addEmployeeQuestions = [
         {
@@ -112,11 +127,13 @@ function addEmployee() {
         addEmployeeQuestions[3].choices= result;
     });
 
+    // currently, function is running inquirer before questions get updated by above db queries
     inquirer
     .prompt(addEmployeeQuestions)
     .then(function(data) {
         var roleId;
 
+        // save relevant roleId based on user's chosen role title
         for (i = 0; i < addEmployeeQuestions[2].choices.length; i++) {
             if (addEmployeeQuestions[2].choices[i].title === data.title) {
                 roleId = addEmployeeQuestions[2].choices[i].id;
@@ -125,6 +142,7 @@ function addEmployee() {
 
         var managerId;
 
+        // save relevant managerId based on user's chosen manager name
         for (i = 0; i < addEmployeeQuestions[3].choices.length; i++) {
             if (addEmployeeQuestions[3].choices[i].manager === data.manager) {
                 managerId = addEmployeeQuestions[3].choices[i].id;
@@ -136,15 +154,16 @@ function addEmployee() {
 
         db.query(sql, (err, result) => {
             if (err) {
-                console.error(err);
-                return;
+                throw(err);
             }
             init();
         });
     })
 }
 
+// add new role
 function addRole() {
+    // inquirer questions
     const addRoleQuestions = [
         {
             type: 'input',
@@ -164,6 +183,7 @@ function addRole() {
         }
     ]
 
+    // get departments so we can dynamically update 'choices' on the above questions array
     db.query("SELECT * FROM department", function (err, result) {
         if (err) {
             throw err;
@@ -171,31 +191,36 @@ function addRole() {
         addRoleQuestions[2].choices = result;
     });
 
+    // inquirer!
     inquirer
     .prompt(addRoleQuestions)
     .then(function(data) {
+        // initialize deptId
         var deptId;
 
+        // save relevant deptId based on user's chosen department name
         for (i = 0; i < addRoleQuestions[2].choices.length; i++) {
             if (addRoleQuestions[2].choices[i].name === data.department) {
                 deptId = addRoleQuestions[2].choices[i].id;
             }
         }
 
+        // query to add new role based on user input; better practice would be to use `?` and pass arguments in db.query below
         const sql = `INSERT INTO role (title, salary, department_id)
         VALUES ("${data.title}", ${data.salary}, ${deptId});`
 
         db.query(sql, (err, result) => {
             if (err) {
-                console.error(err);
-                return;
+                throw(err);
             }
             init();
         });
     })
 }
 
+// add new department
 function addDepartment() {
+    // array with single inquirer question
     const addDepartmentQuestion = [
         {
             type: 'input',
@@ -219,7 +244,7 @@ function addDepartment() {
         })
 }
 
-// same issue as addEmployee: skips ahead to inquirer before the db queries can update the questions array
+// update existing employee; same issue as addEmployee: skips ahead to inquirer before the db queries can update the questions array
 function updateEmployeeRole() {
     const updateEmployeeQuestions = [
         {
@@ -283,6 +308,7 @@ function updateEmployeeRole() {
     })
 }
 
+// init function; starts base level inquirer and calls one of the above functions based on user choice
 function init() {
     inquirer
         .prompt(starterQuestion)
@@ -305,4 +331,5 @@ function init() {
         })
 }
 
+// run init!
 init();

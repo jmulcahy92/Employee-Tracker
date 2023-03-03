@@ -1,13 +1,17 @@
+-- reset database --
 DROP DATABASE IF EXISTS employee_db;
 CREATE DATABASE employee_db;
 
+-- make the following tables on employee_db --
 USE employee_db;
 
+-- department table --
 CREATE TABLE department (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(30)
 );
 
+-- role table, references department --
 CREATE TABLE role (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(30),
@@ -18,6 +22,7 @@ CREATE TABLE role (
     ON DELETE SET NULL
 );
 
+-- employee table, references role and self --
 CREATE TABLE employee (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     first_name VARCHAR(30),
