@@ -10,7 +10,7 @@ To use this applications, follow these instructions (as demonstrated in the vide
     1. Open your terminal in the "main" folder of this project and and input the command `node index.js` <br>
     2. Select what you want to do and answer the prompts if there are any.<br>
 
-
+https://drive.google.com/file/d/1u8-Bm4Wm0kHftXuvreGETyVJQ7Ti-utn/view?usp=sharing
 
 ## License
 
